@@ -31,11 +31,9 @@ Por ejemplo, se define un area y punto de partida:
 - Punto de partida: (0,0)
 - Movimiento X = 2 mt , Y = 5 mt
 
-```mermaid
-flowchart TD
-    A[Android app (Kotlin + Compose)] -- REST --> B
-    B[Backend (Unitree SDK2/Python)] -- DDS --> C[Gemelo digital (MuJoCo G1 3D)]
-```
+### Arquitectura
+Android app (Kotlin + Compose) --> Backend (Unitree SDK2/Python) --> Gemelo digital (MuJoCo G1 3D)
+    
 
 
 ### Link a figma para diseño de los TPO
