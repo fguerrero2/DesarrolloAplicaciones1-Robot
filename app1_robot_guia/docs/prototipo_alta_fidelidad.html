@@ -1,0 +1,547 @@
+<title>Prototipo Robot Guía G1</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: mesa de trabajo. Teléfono navegable a la izquierda, panel de anotaciones (heurísticas, datos, escenarios) a la derecha, galería de capturas reales abajo. */
+:root {
+  --page: #eef1f7;
+  --ink: #1a1c22;
+  --muted: #5b6170;
+  --rule: #d3d8e3;
+  /* Material 3 de la app (ui/theme) */
+  --primary: #1f4e8c; --on-primary: #ffffff; --primary-c: #d6e3ff; --on-primary-c: #001b3e;
+  --secondary: #00696e; --secondary-c: #b4ebef;
+  --surface: #f8f9ff; --surface-c: #eceef4; --surface-ch: #e3e5ec; --outline: #74777f;
+  --success: #1e7b34; --warning: #8a5100; --danger: #ba1a1a; --info: #1f4e8c;
+  --display: "Space Grotesk", "Segoe UI", sans-serif;
+  --ui: "Roboto", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --page: #0d0f14; --ink: #e3e4ea; --muted: #a2a7b4; --rule: #2c303a;
+  --primary: #a9c7ff; --on-primary: #002f65; --primary-c: #00468a; --on-primary-c: #d6e3ff;
+  --secondary: #6fd6dc; --secondary-c: #004f53;
+  --surface: #111318; --surface-c: #1d2024; --surface-ch: #282a2f; --outline: #8e9099;
+  --success: #7fdb8e; --warning: #ffb870; --danger: #ffb4ab; --info: #a9c7ff; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --page: #0d0f14; --ink: #e3e4ea; --muted: #a2a7b4; --rule: #2c303a;
+  --primary: #a9c7ff; --on-primary: #002f65; --primary-c: #00468a; --on-primary-c: #d6e3ff;
+  --secondary: #6fd6dc; --secondary-c: #004f53;
+  --surface: #111318; --surface-c: #1d2024; --surface-ch: #282a2f; --outline: #8e9099;
+  --success: #7fdb8e; --warning: #ffb870; --danger: #ffb4ab; --info: #a9c7ff; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--page); color: var(--ink); font-family: var(--ui); line-height: 1.5; margin: 0;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px 48px; }
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 32px; }
+header h1 { font-family: var(--display); font-weight: 600; font-size: clamp(1.7rem, 4vw, 2.4rem); margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+header p { max-width: 68ch; color: var(--muted); margin: 8px 0 0; }
+.steps { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; padding: 0; list-style: none; }
+.steps li { font-size: .8rem; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--rule); color: var(--muted); }
+.steps li.done { background: var(--success); border-color: var(--success); color: var(--surface); }
+
+.stage { display: grid; grid-template-columns: minmax(0, 380px) minmax(0, 1fr); gap: 32px; align-items: start; }
+@media (max-width: 820px) { .stage { grid-template-columns: minmax(0, 1fr); } }
+
+/* ---------- Teléfono ---------- */
+.device { width: min(380px, 100%); justify-self: center; border-radius: 40px; padding: 12px; background: #15171c; box-shadow: 0 20px 50px rgb(0 0 0 / .25); }
+.screen { background: var(--surface); color: var(--ink); border-radius: 30px; overflow: hidden; height: 760px; display: flex; flex-direction: column; position: relative; font-size: 14px; }
+.sysbar { display: flex; justify-content: space-between; padding: 10px 22px 4px; font-size: 12px; font-weight: 500; }
+.appbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px 8px 16px; min-height: 56px; }
+.appbar h2 { font-size: 22px; font-weight: 400; margin: 0; flex: 1; }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; color: var(--ink); display: grid; place-items: center; cursor: pointer; }
+.icon-btn:hover { background: var(--surface-ch); }
+svg.i { width: 22px; height: 22px; fill: currentColor; }
+.statusbar { background: var(--surface-c); padding: 8px 16px; display: grid; gap: 4px; cursor: pointer; border: 0; text-align: left; color: inherit; font: inherit; width: 100%; }
+.statusbar .r { display: flex; align-items: center; gap: 6px; }
+.statusbar .name { font-weight: 500; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.statusbar .sub { flex: 1; font-size: 12px; color: var(--muted); }
+.pill { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 8px; font-size: 12px; font-weight: 500; white-space: nowrap;
+  color: var(--c); background: color-mix(in srgb, var(--c) 14%, transparent); }
+.pill svg { width: 14px; height: 14px; fill: currentColor; }
+.content { flex: 1; overflow-y: auto; padding: 12px 16px 16px; display: flex; flex-direction: column; gap: 12px; }
+.card { background: var(--surface-ch); border-radius: 12px; padding: 14px; display: grid; gap: 8px; }
+.card h3 { margin: 0; font-size: 16px; font-weight: 500; }
+.card.primary { background: var(--primary-c); color: var(--on-primary-c); cursor: pointer; }
+.tint { background: color-mix(in srgb, var(--c) 12%, var(--surface)); }
+.kv { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
+.kv small { display: block; font-size: 11px; color: var(--muted); }
+.kv b { font-weight: 400; font-size: 15px; font-variant-numeric: tabular-nums; }
+.btn { border: 0; border-radius: 999px; min-height: 48px; padding: 0 20px; font: 500 14px var(--ui); display: inline-flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; width: 100%; }
+.btn svg { width: 20px; height: 20px; fill: currentColor; }
+.btn.filled { background: var(--primary); color: var(--on-primary); min-height: 56px; }
+.btn.tonal { background: var(--secondary-c); color: var(--ink); }
+.btn.outline { background: transparent; color: var(--primary); border: 1px solid var(--outline); }
+.btn.stop { background: var(--danger); color: var(--surface); min-height: 60px; flex-direction: column; gap: 0; }
+.btn.stop small { font-weight: 400; font-size: 11px; }
+.btn:disabled { background: color-mix(in srgb, var(--ink) 10%, transparent); color: color-mix(in srgb, var(--ink) 38%, transparent); border-color: transparent; cursor: not-allowed; }
+.btn:focus-visible, .icon-btn:focus-visible, .chip:focus-visible, .navi:focus-visible, .row-sel:focus-visible { outline: 3px solid var(--secondary); outline-offset: 2px; }
+.row2 { display: flex; gap: 8px; } .row2 > * { flex: 1; }
+.hint { font-size: 12px; color: var(--muted); margin: 0; }
+.progress { height: 6px; background: var(--secondary-c); border-radius: 3px; overflow: hidden; }
+.progress i { display: block; height: 100%; background: var(--primary); border-radius: 3px; transition: width .6s; }
+.radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--outline); flex: none; display: grid; place-items: center; }
+.radio.on { border-color: var(--primary); } .radio.on::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--primary); }
+.row-sel { display: flex; align-items: center; gap: 12px; min-height: 52px; background: none; border: 0; border-bottom: 1px solid var(--rule); color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 6px 0; width: 100%; }
+.row-sel .t { flex: 1; } .row-sel .t small { display: block; color: var(--muted); font-size: 12px; }
+.row-sel .d { font-size: 12px; font-variant-numeric: tabular-nums; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.chip { border: 1px solid var(--outline); background: transparent; color: var(--ink); border-radius: 8px; padding: 6px 12px; font: 500 13px var(--ui); white-space: nowrap; cursor: pointer; }
+.chip.on { background: var(--secondary-c); border-color: transparent; }
+.field { border: 1px solid var(--outline); border-radius: 6px; padding: 12px; display: flex; gap: 8px; align-items: center; background: transparent; }
+.field input { border: 0; background: transparent; color: var(--ink); font: 15px var(--ui); flex: 1; min-width: 0; outline: none; }
+.field.err { border-color: var(--danger); }
+.bottom-sheet { background: var(--surface-c); padding: 12px 16px; display: grid; gap: 10px; }
+.stepper { display: flex; align-items: center; gap: 12px; }
+.stepper button { width: 40px; height: 40px; border-radius: 50%; border: 0; background: var(--secondary-c); color: var(--ink); font-size: 20px; cursor: pointer; }
+.stepper button:disabled { opacity: .4; cursor: not-allowed; }
+.stepper b { font-size: 22px; font-weight: 400; min-width: 24px; text-align: center; }
+.nav { display: flex; background: var(--surface-c); padding: 8px 0 14px; }
+.navi { flex: 1; border: 0; background: none; color: var(--muted); font: 500 12px var(--ui); display: grid; justify-items: center; gap: 4px; cursor: pointer; position: relative; }
+.navi .ind { width: 56px; height: 30px; border-radius: 15px; display: grid; place-items: center; }
+.navi.on { color: var(--secondary); } .navi.on .ind { background: var(--secondary-c); color: var(--ink); }
+.badge { position: absolute; top: -2px; left: calc(50% + 6px); background: var(--danger); color: var(--surface); border-radius: 8px; font-size: 10px; min-width: 16px; height: 16px; padding: 0 4px; display: grid; place-items: center; }
+.badge.dot { min-width: 8px; height: 8px; padding: 0; top: 2px; left: calc(50% + 10px); }
+.scrim { position: absolute; inset: 0; background: rgb(0 0 0 / .4); display: grid; place-items: center; padding: 24px; z-index: 5; }
+.dialog { background: var(--surface-ch); border-radius: 28px; padding: 24px; display: grid; gap: 12px; }
+.dialog h3 { margin: 0; font-size: 20px; font-weight: 400; }
+.dialog .acts { display: flex; justify-content: flex-end; gap: 8px; }
+.dialog .acts button { border: 0; background: none; color: var(--primary); font: 500 14px var(--ui); padding: 10px 12px; border-radius: 20px; cursor: pointer; }
+.dialog .acts .danger { color: var(--danger); }
+.toast { position: absolute; left: 12px; right: 12px; bottom: 84px; background: var(--ink); color: var(--surface); border-radius: 6px; padding: 12px 14px; font-size: 13px; z-index: 6; }
+.empty { text-align: center; color: var(--muted); padding: 40px 16px; display: grid; gap: 8px; justify-items: center; }
+.empty svg { width: 56px; height: 56px; fill: var(--outline); }
+.empty b { color: var(--ink); font-size: 16px; font-weight: 500; }
+.log { font-size: 12px; font-variant-numeric: tabular-nums; display: grid; gap: 2px; }
+svg.map { width: 100%; height: auto; border-radius: 8px; display: block; }
+
+/* ---------- Panel ---------- */
+.panel { display: grid; gap: 20px; min-width: 0; }
+.panel section { border-top: 1px solid var(--rule); padding-top: 16px; display: grid; gap: 10px; }
+.panel h2 { font-family: var(--display); font-weight: 600; font-size: 1.35rem; margin: 0; }
+.panel h3 { font-size: .75rem; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 0; font-weight: 500; }
+.panel p { margin: 0; max-width: 62ch; }
+.heur { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.heur li { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: start; }
+.heur .n { font-family: var(--display); font-weight: 600; color: var(--primary); font-size: 1.05rem; }
+.jump, .scen { display: flex; flex-wrap: wrap; gap: 8px; }
+.jump button, .scen button { border: 1px solid var(--rule); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 6px 12px; font: 500 13px var(--ui); cursor: pointer; }
+.jump button.on { border-color: var(--primary); color: var(--primary); }
+.scen button:hover, .jump button:hover { border-color: var(--outline); }
+code { font-size: .85em; background: var(--surface-ch); padding: 1px 5px; border-radius: 4px; }
+
+.gallery h2 { font-family: var(--display); font-weight: 600; font-size: 1.5rem; margin: 0 0 4px; }
+.gallery p { color: var(--muted); margin: 0 0 16px; max-width: 70ch; }
+.shots { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 16px; }
+.shots figure { margin: 0; display: grid; gap: 6px; }
+.shots img { width: 100%; border-radius: 14px; border: 1px solid var(--rule); max-width: 100%; }
+.shots figcaption { font-size: .8rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { .progress i { transition: none; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Robot guía G1 · prototipo de alta fidelidad</h1>
+    <p>Prototipo navegable de la app de operador (Jetpack Compose + Material 3). Usá el teléfono como si fuera la app: elegí un destino, iniciá la guía y forzá incidentes desde el panel. El robot está simulado en el navegador, igual que el simulador embebido de la app.</p>
+    <ol class="steps" id="steps" aria-label="Recorrido del MVP"></ol>
+  </header>
+
+  <div class="stage">
+    <div class="device"><div class="screen" id="screen" aria-live="polite"></div></div>
+    <aside class="panel">
+      <section>
+        <h3>Ir a pantalla</h3>
+        <div class="jump" id="jump"></div>
+      </section>
+      <section id="about"></section>
+      <section>
+        <h3>Forzar escenario (como en Configuración → Simulación)</h3>
+        <div class="scen" id="scen"></div>
+        <p class="hint" style="font-size:.85rem">Cada escenario cambia la telemetría simulada. Mirá cómo responden la barra de estado, la pantalla de misión y las alertas.</p>
+      </section>
+    </aside>
+  </div>
+
+  <section class="gallery">
+    <h2>Implementación en Android</h2>
+    <p>Capturas de la app real corriendo en el emulador Pixel 9a (Android 17) con el simulador embebido. Siguen el prototipo; los cambios surgidos al probarla están anotados en la documentación de heurísticas.</p>
+    <div class="shots">
+      <figure><img src="screenshots/01_inicio.png" alt="Pantalla Inicio de la app" loading="lazy"><figcaption>Inicio y selección de robot</figcaption></figure>
+      <figure><img src="screenshots/02_mapa.png" alt="Pantalla Mapa del campus" loading="lazy"><figcaption>Mapa del campus</figcaption></figure>
+      <figure><img src="screenshots/03_destino.png" alt="Selección de destino" loading="lazy"><figcaption>Selección de destino</figcaption></figure>
+      <figure><img src="screenshots/04_mision.png" alt="Misión en curso" loading="lazy"><figcaption>Misión en curso</figcaption></figure>
+      <figure><img src="screenshots/04b_mision_incidente.png" alt="Misión con visitante rezagado" loading="lazy"><figcaption>Incidente: visitante rezagado</figcaption></figure>
+      <figure><img src="screenshots/04c_confirmar_cancelar.png" alt="Diálogo de confirmación" loading="lazy"><figcaption>Confirmar cancelación</figcaption></figure>
+      <figure><img src="screenshots/05_alertas.png" alt="Alertas" loading="lazy"><figcaption>Alertas</figcaption></figure>
+      <figure><img src="screenshots/06_historial.png" alt="Historial con detalle" loading="lazy"><figcaption>Historial con comandos y eventos</figcaption></figure>
+      <figure><img src="screenshots/07_configuracion.png" alt="Configuración del backend" loading="lazy"><figcaption>Configuración → Backend</figcaption></figure>
+      <figure><img src="screenshots/08_sin_conexion.png" alt="Inicio sin conexión" loading="lazy"><figcaption>Sin conexión: último dato conocido</figcaption></figure>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  // ---------- Íconos (Material Symbols, trazados mínimos) ----------
+  const I = {
+    gear: 'M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7 7 0 0 0-1.7-1L15 3h-4l-.4 2.7a7 7 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1a7 7 0 0 0 1.7 1L11 21h4l.4-2.7a7 7 0 0 0 1.7-1l2.5 1 2-3.5zM13 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z',
+    back: 'M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z',
+    home: 'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z',
+    map: 'M20.5 3l-.2.1L15 5.1 9 3 3.4 4.9a.5.5 0 0 0-.4.5V20.5a.5.5 0 0 0 .7.4L9 18.9l6 2.1 5.6-1.9a.5.5 0 0 0 .4-.5V3.5a.5.5 0 0 0-.5-.5zM15 19l-6-2.1V5l6 2.1z',
+    flag: 'M14.4 6L14 4H5v17h2v-7h5.6l.4 2h7V6z',
+    bell: 'M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5c0-3.1-1.6-5.6-4.5-6.3V4a1.5 1.5 0 0 0-3 0v.7C7.6 5.4 6 7.9 6 11v5l-2 2v1h16v-1z',
+    hist: 'M13 3a9 9 0 0 0-9 9H1l4 4 4-4H6a7 7 0 1 1 2 4.9l-1.4 1.5A9 9 0 1 0 13 3zm-1 5v5l4.3 2.5.7-1.2-3.5-2.1V8z',
+    wifi: 'M1 9l2 2a12.7 12.7 0 0 1 18 0l2-2A15.6 15.6 0 0 0 1 9zm8 8l3 3 3-3a4.2 4.2 0 0 0-6 0zm-4-4l2 2a7 7 0 0 1 10 0l2-2a9.9 9.9 0 0 0-14 0z',
+    nowifi: 'M23 9a15.6 15.6 0 0 0-17.4-3.3l2.3 2.3A12.7 12.7 0 0 1 21 11zM3.4 2L2 3.4l3 3A16 16 0 0 0 1 9l2 2a13 13 0 0 1 3.5-2.6l2.2 2.2A10 10 0 0 0 5 13l2 2a7 7 0 0 1 4-2l7.6 7.6L20 19.2zM12 20l3-3a4.2 4.2 0 0 0-6 0z',
+    bat: 'M15.7 4H14V2h-4v2H8.3C7.6 4 7 4.6 7 5.3v15.4c0 .7.6 1.3 1.3 1.3h7.4c.7 0 1.3-.6 1.3-1.3V5.3C17 4.6 16.4 4 15.7 4z',
+    nav: 'M21 3L3 10.5v1l7 2.5 2.5 7h1z',
+    pause: 'M6 19h4V5H6zm8-14v14h4V5z',
+    play: 'M8 5v14l11-7z',
+    close: 'M19 6.4L17.6 5 12 10.6 6.4 5 5 6.4 10.6 12 5 17.6 6.4 19 12 13.4 17.6 19 19 17.6 13.4 12z',
+    hand: 'M21 7a1.5 1.5 0 0 0-3 0v5h-1V3.5a1.5 1.5 0 0 0-3 0V12h-1V2.5a1.5 1.5 0 0 0-3 0V12H9V4.5a1.5 1.5 0 0 0-3 0v10.3L3.4 12.2a1.4 1.4 0 0 0-2 2L8 21.4A5 5 0 0 0 11.5 23H16a5 5 0 0 0 5-5z',
+    check: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-2 15l-5-5 1.4-1.4 3.6 3.6 7.6-7.6L19 8z',
+    err: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2zm0-4h-2V7h2z',
+    warn: 'M1 21h22L12 2zm12-3h-2v-2h2zm0-4h-2v-4h2z',
+    info: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2zm0-8h-2V7h2z',
+    hour: 'M6 2v6l4 4-4 4v6h12v-6l-4-4 4-4V2z',
+    cloudoff: 'M19.4 10A7.5 7.5 0 0 0 7.8 5.4l1.5 1.5A5.5 5.5 0 0 1 17.5 11v.5H19a2.5 2.5 0 0 1 1.3 4.6l1.5 1.5A4.5 4.5 0 0 0 19.4 10zM3 5.3l2.8 2.7A6 6 0 0 0 6 20h11.7l2 2 1.3-1.3L4.3 4z',
+    search: 'M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z',
+    done: 'M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z',
+  };
+  const ic = (n, cls = 'i') => `<svg class="${cls}" viewBox="0 0 24 24" aria-hidden="true"><path d="${I[n]}"/></svg>`;
+
+  // ---------- Datos del campus (mismos que CampusCatalog.kt) ----------
+  const SAFE = { x: 1, y: 1 };
+  const DEST = [
+    ['aula-101', 'Aula 101', 'Aula', 'Edificio A', 1, 6, 4], ['aula-204', 'Aula 204', 'Aula', 'Edificio A', 2, 10, 14],
+    ['aula-305', 'Aula 305', 'Aula', 'Edificio A', 3, 12, 8], ['lab-robotica', 'Laboratorio de Robótica', 'Laboratorio', 'Edificio B', 1, 22, 5],
+    ['lab-info3', 'Laboratorio de Informática 3', 'Laboratorio', 'Edificio B', 2, 25, 13], ['aud-magna', 'Auditorio Magna', 'Auditorio', 'Edificio C', 0, 15, 18],
+    ['of-alumnos', 'Oficina de Alumnos', 'Oficina', 'Edificio A', 0, 3, 12], ['of-decanato', 'Decanato', 'Oficina', 'Edificio C', 1, 27, 18],
+  ].map(([id, name, type, building, floor, x, y]) => ({ id, name, type, building, floor, x, y }));
+  const ROBOTS = [{ id: 'g1-01', name: 'Unitree G1 · Recepción', loc: 'Hall principal' }, { id: 'g1-02', name: 'Unitree G1 · Edificio B', loc: 'Planta baja B' }];
+  const STATE_LABEL = { IDLE: 'Disponible', GUIDING: 'Guiando', PAUSED: 'En pausa', WAITING: 'Esperando (incidente)', ARRIVED: 'Llegó a destino', RETURNING: 'Regresando', STOPPED: 'Detenido (software)' };
+  const CMD_LABEL = { START: 'Iniciar misión', PAUSE: 'Pausar', RESUME: 'Reanudar', CANCEL: 'Cancelar misión', RETURN: 'Regresar a punto seguro', STOP: 'Detención operativa', ACK: 'Reconocer alerta' };
+  const STATUS = { PENDING: ['Enviado · esperando', 'info', 'hour'], CONFIRMED: ['Confirmado', 'success', 'check'], REJECTED: ['Rechazado', 'danger', 'err'], NO_RESPONSE: ['Sin respuesta', 'warning', 'cloudoff'] };
+  const SPEED = 0.5;
+
+  // ---------- Estado ----------
+  const s = {
+    screen: 'home', robot: 'g1-01', conn: true, battery: 85, op: 'IDLE', pos: { x: 1, y: 1, yaw: 0 }, updated: Date.now(),
+    mission: null, alerts: [], cmds: [], history: [], events: [],
+    sel: null, companions: 1, query: '', filter: null, mapSel: null,
+    flags: { lag: false, blocked: false, unavailable: false, rejectNext: false, lowAlerted: false },
+    confirm: null, toast: null, alertTab: 'pending', open: null,
+    settings: { mode: 'SIM', url: 'http://10.0.2.2:8000/', timeout: '3', health: null },
+    done: new Set(),
+  };
+  let seq = 1;
+  const now = () => Date.now();
+  const time = t => new Date(t).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const atSafe = () => dist(s.pos, SAFE) < 0.5;
+  const pending = () => s.cmds.some(c => c.status === 'PENDING');
+  const stale = () => !s.conn || now() - s.updated > 5000;
+  const unacked = () => s.alerts.filter(a => !a.ack);
+
+  function available() {
+    const set = new Set();
+    if (s.op !== 'STOPPED') set.add('STOP');
+    if (pending() || !s.conn) return set;
+    const m = !!s.mission;
+    if (s.op === 'IDLE' || s.op === 'ARRIVED') { if (!m && s.battery >= 20) set.add('START'); if (!atSafe()) set.add('RETURN'); }
+    if (s.op === 'GUIDING' || s.op === 'WAITING') ['PAUSE', 'CANCEL', 'RETURN'].forEach(x => set.add(x));
+    if (s.op === 'PAUSED') ['RESUME', 'CANCEL', 'RETURN'].forEach(x => set.add(x));
+    if (s.op === 'STOPPED') { set.add('RETURN'); if (m) { set.add('RESUME'); set.add('CANCEL'); } }
+    return set;
+  }
+  function blockedReason() {
+    if (!s.conn) return 'Sin conexión con el robot. Revisá Configuración → Backend.';
+    if (pending()) return 'Esperando la respuesta del comando anterior.';
+    if (s.mission) return 'Ya hay una misión en curso. Finalizala o cancelala antes de iniciar otra.';
+    if (s.battery < 20) return `Batería insuficiente (${s.battery}%). Mínimo 20%.`;
+    if (!['IDLE', 'ARRIVED'].includes(s.op)) return `El robot está ocupado (${STATE_LABEL[s.op]}).`;
+    return null;
+  }
+
+  function addAlert(type, sev, msg) {
+    s.alerts.unshift({ id: 'al-' + seq++, type, sev, msg, t: now(), ack: sev === 'INFO' });
+    if (s.mission) { s.mission.alerts++; event('Alerta: ' + msg); }
+  }
+  function event(msg) { if (s.mission) s.events.push({ mid: s.mission.id, t: now(), msg }); }
+  function toast(msg) { s.toast = msg; clearTimeout(toast.h); toast.h = setTimeout(() => { s.toast = null; render(); }, 3200); }
+  function finish(state) {
+    const m = s.mission; if (!m) return;
+    s.history.unshift({ ...m, end: now(), final: state, cmds: s.cmds.filter(c => c.mid === m.id), events: s.events.filter(e => e.mid === m.id) });
+    s.mission = null;
+  }
+
+  // ---------- Comandos: PENDING → CONFIRMED / REJECTED / NO_RESPONSE ----------
+  function send(type, extra = {}) {
+    if (type !== 'ACK' && !available().has(type)) { toast(`${CMD_LABEL[type]} no está disponible en este estado.`); render(); return; }
+    const c = { id: 'cmd-' + seq++, type, status: 'PENDING', msg: 'Enviado', t: now(), mid: s.mission?.id };
+    s.cmds.unshift(c); event(`${CMD_LABEL[type]}: enviado`); render();
+    setTimeout(() => {
+      if (!s.conn) { c.status = 'NO_RESPONSE'; c.msg = 'Sin respuesta en 3 s'; addAlert('DISCONNECTED', 'WARNING', `${CMD_LABEL[type]} sin respuesta`); }
+      else if (s.flags.rejectNext) { s.flags.rejectNext = false; c.status = 'REJECTED'; c.msg = 'Rechazado por el robot (escenario forzado)'; addAlert('COMMAND_REJECTED', 'WARNING', `${CMD_LABEL[type]} rechazado`); }
+      else { c.status = 'CONFIRMED'; c.msg = apply(type, extra, c); }
+      event(`${CMD_LABEL[type]}: ${STATUS[c.status][0]}`);
+      toast(`${CMD_LABEL[type]}: ${STATUS[c.status][0]}`);
+      render();
+    }, type === 'STOP' ? 300 : 700);
+  }
+  function apply(type, x, c) {
+    switch (type) {
+      case 'START': {
+        const d = DEST.find(d => d.id === x.dest);
+        s.mission = { id: 'mis-' + seq++, dest: d, companions: x.companions, start: now(), total: dist(s.pos, d), alerts: 0 };
+        c.mid = s.mission.id; s.op = 'GUIDING'; s.done.add('start');
+        s.events.push({ mid: s.mission.id, t: now(), msg: `Misión creada hacia ${d.name} con ${x.companions} acompañado(s)` });
+        s.screen = 'mission'; return `Misión de guía hacia ${d.name} aceptada`;
+      }
+      case 'PAUSE': s.op = 'PAUSED'; return 'Misión pausada';
+      case 'RESUME': s.op = 'GUIDING'; return 'Misión reanudada';
+      case 'CANCEL': s.op = 'IDLE'; finish('Cancelada'); s.done.add('end'); return 'Misión cancelada';
+      case 'RETURN': s.op = 'RETURNING'; finish('Regresó a punto seguro'); s.done.add('end'); return 'Regresando a recepción';
+      case 'STOP': s.op = 'STOPPED'; return 'Detención operativa por software ejecutada';
+      case 'ACK': { const a = s.alerts.find(a => a.id === x.alert); if (a) a.ack = true; s.done.add('incident'); return 'Alerta reconocida'; }
+    }
+  }
+
+  // ---------- Simulación: 1 tick por segundo ----------
+  function step(target) {
+    const d = dist(s.pos, target);
+    if (d <= SPEED) { s.pos.x = target.x; s.pos.y = target.y; return true; }
+    s.pos.yaw = Math.atan2(target.y - s.pos.y, target.x - s.pos.x);
+    s.pos.x += SPEED * Math.cos(s.pos.yaw); s.pos.y += SPEED * Math.sin(s.pos.yaw); return false;
+  }
+  function tick() {
+    if (s.conn) {
+      const f = s.flags;
+      if (s.op === 'GUIDING' && (f.lag || f.blocked || f.unavailable)) s.op = 'WAITING';
+      else if (s.op === 'WAITING' && !(f.lag || f.blocked || f.unavailable)) s.op = 'GUIDING';
+      else if (s.op === 'GUIDING' && step(s.mission.dest)) { s.op = 'ARRIVED'; addAlert('INFO', 'INFO', `Llegada a ${s.mission.dest.name}. Misión completada.`); finish('Completada'); s.done.add('end'); }
+      else if (s.op === 'RETURNING' && step(SAFE)) s.op = 'IDLE';
+      if (s.op === 'GUIDING' || s.op === 'RETURNING') { s.battery = Math.max(0, s.battery - 0.25); s.done.add('telemetry'); }
+      if (s.battery < 20 && !f.lowAlerted) { f.lowAlerted = true; addAlert('LOW_BATTERY', 'CRITICAL', `Batería baja (${Math.floor(s.battery)}%). Se recomienda regresar al punto seguro.`); }
+      s.updated = now();
+    }
+    if (!s.confirm) render();
+  }
+  setInterval(tick, 1000);
+
+  const SCEN = {
+    'Batería baja': () => { s.battery = 12; s.flags.lowAlerted = false; },
+    'Desconexión': () => { if (s.conn) { s.conn = false; addAlert('DISCONNECTED', 'CRITICAL', 'Se perdió la conexión con el robot. Se muestran los últimos datos conocidos.'); } },
+    'Rechazar próximo comando': () => { s.flags.rejectNext = true; },
+    'Visitante rezagado': () => { s.flags.lag = true; addAlert('VISITOR_LAGGING', 'WARNING', 'Visitante rezagado: el robot espera al grupo.'); s.done.add('incident0'); },
+    'Destino inaccesible': () => { s.flags.unavailable = true; addAlert('DESTINATION_UNAVAILABLE', 'WARNING', 'Destino temporalmente inaccesible (aula cerrada).'); },
+    'Ruta bloqueada': () => { s.flags.blocked = true; addAlert('ROUTE_BLOCKED', 'CRITICAL', 'Ruta bloqueada por un obstáculo en el pasillo.'); },
+    'Recuperar / normalizar': () => { s.conn = true; Object.assign(s.flags, { lag: false, blocked: false, unavailable: false, rejectNext: false }); if (s.battery < 60) { s.battery = 85; s.flags.lowAlerted = false; } s.updated = now(); },
+  };
+  const HINT = {
+    VISITOR_LAGGING: 'El robot espera al grupo. Podés esperar, pausar la misión o reanudarla cuando el visitante se reincorpore.',
+    ROUTE_BLOCKED: 'El robot no puede avanzar. Despejá el pasillo o cancelá y regresá a punto seguro.',
+    DESTINATION_UNAVAILABLE: 'El destino está inaccesible. Cancelá la misión y elegí un destino alternativo.',
+    LOW_BATTERY: 'Batería baja. Se recomienda regresar a punto seguro para cargar.',
+    DISCONNECTED: 'Sin conexión: los comandos pueden no llegar. Verificá la red o el backend.',
+    COMMAND_REJECTED: 'El robot rechazó la orden. Revisá su estado actual antes de reintentar.',
+  };
+
+  // ---------- Componentes ----------
+  const pill = (text, c, icon) => `<span class="pill" style="--c:var(--${c})">${icon ? ic(icon) : ''}${esc(text)}</span>`;
+  const stateColor = op => ({ IDLE: 'success', ARRIVED: 'success', GUIDING: 'info', RETURNING: 'info', PAUSED: 'warning', WAITING: 'warning', STOPPED: 'danger' }[op]);
+  const batColor = b => b < 20 ? 'danger' : b < 40 ? 'warning' : 'success';
+  const sevColor = v => ({ INFO: 'info', WARNING: 'warning', CRITICAL: 'danger' }[v]);
+  const sevText = v => ({ INFO: 'Info', WARNING: 'Advertencia', CRITICAL: 'Crítica' }[v]);
+  const sevIcon = v => ({ INFO: 'info', WARNING: 'warn', CRITICAL: 'err' }[v]);
+  const cmdPill = st => pill(...STATUS[st].slice(0, 1), STATUS[st][1], STATUS[st][2]);
+  const age = () => { const a = Math.max(0, Math.round((now() - s.updated) / 1000)); return a < 2 ? 'ahora' : `hace ${a} s`; };
+  const btn = (cls, act, label, icon, enabled = true, extra = '') => `<button class="btn ${cls}" data-act="${act}" ${enabled ? '' : 'disabled'} ${extra}>${icon ? ic(icon) : ''}<span>${label}</span></button>`;
+  const stopBtn = () => `<button class="btn stop" data-act="cmd:STOP" ${available().has('STOP') ? '' : 'disabled'}><span style="display:flex;gap:8px;align-items:center">${ic('hand')}DETENCIÓN OPERATIVA</span><small>Por software · no reemplaza la parada de emergencia física</small></button>`;
+  const staleBanner = () => stale() ? `<div class="card tint" style="--c:var(--danger);color:var(--danger)"><div style="display:flex;gap:10px;align-items:center">${ic('cloudoff')}<div><b style="font-weight:500">Datos desactualizados</b><div style="font-size:12px">Último dato ${age()}. Los comandos pueden no llegar al robot.</div></div></div></div>` : '';
+
+  function mapSvg(sel) {
+    const S = 10, H = 20;
+    const p = (x, y) => [x * S, (H - y) * S];
+    const target = s.mission?.dest;
+    const b = [['Edificio A', 2, 3, 14, 15], ['Edificio B', 19, 3, 28, 15], ['Edificio C', 13, 16.5, 29, 19.5]]
+      .map(([n, x1, y1, x2, y2]) => `<rect x="${x1 * S}" y="${(H - y2) * S}" width="${(x2 - x1) * S}" height="${(y2 - y1) * S}" fill="var(--surface)" stroke="var(--outline)"/><text x="${x1 * S + 3}" y="${(H - y2) * S + 9}" font-size="7" fill="var(--muted)">${n}</text>`).join('');
+    const grid = [...Array(7).keys()].map(i => `<line x1="${i * 50}" y1="0" x2="${i * 50}" y2="200" stroke="var(--rule)"/>`).join('') + [...Array(5).keys()].map(i => `<line x1="0" y1="${i * 50}" x2="300" y2="${i * 50}" stroke="var(--rule)"/>`).join('');
+    const pins = DEST.map(d => { const [x, y] = p(d.x, d.y); const hi = d.id === sel || d.id === target?.id; const right = x > 230;
+      return `<g data-act="mapsel:${d.id}" style="cursor:pointer"><circle cx="${x}" cy="${y}" r="${hi ? 6 : 4.5}" fill="${hi ? 'var(--warning)' : 'var(--secondary)'}"/><circle cx="${x}" cy="${y}" r="2" fill="var(--surface)"/><text x="${right ? x - 6 : x + 6}" y="${y + 3}" font-size="7" text-anchor="${right ? 'end' : 'start'}" fill="var(--muted)">${d.name}</text><circle cx="${x}" cy="${y}" r="12" fill="transparent"/></g>`; }).join('');
+    const [sx, sy] = p(SAFE.x, SAFE.y), [rx, ry] = p(s.pos.x, s.pos.y);
+    const route = target ? (() => { const [tx, ty] = p(target.x, target.y); return `<line x1="${rx}" y1="${ry}" x2="${tx}" y2="${ty}" stroke="var(--primary)" stroke-width="2" stroke-dasharray="6 4"/>`; })() : '';
+    const hx = rx + Math.cos(s.pos.yaw) * 12, hy = ry - Math.sin(s.pos.yaw) * 12;
+    return `<svg class="map" viewBox="0 0 300 200" role="img" aria-label="Mapa del campus, robot en x ${s.pos.x.toFixed(1)}, y ${s.pos.y.toFixed(1)}"><rect width="300" height="200" fill="var(--surface-ch)"/>${grid}${b}<circle cx="${sx}" cy="${sy}" r="5" fill="var(--success)"/><text x="${sx + 7}" y="${sy - 4}" font-size="7" fill="var(--success)">Punto seguro</text>${route}${pins}<circle cx="${rx}" cy="${ry}" r="11" fill="var(--primary)" opacity=".2"/><circle cx="${rx}" cy="${ry}" r="6" fill="var(--primary)"/><line x1="${rx}" y1="${ry}" x2="${hx}" y2="${hy}" stroke="var(--primary)" stroke-width="2.5"/></svg>`;
+  }
+
+  // ---------- Pantallas ----------
+  const SCREENS = {
+    home: { title: 'Inicio', render() {
+      const av = available(), r = blockedReason(), m = s.mission;
+      return `${staleBanner()}
+      <div class="card"><h3>Robot</h3>${ROBOTS.map(rb => `<button class="row-sel" data-act="robot:${rb.id}" role="radio" aria-checked="${rb.id === s.robot}"><span class="radio ${rb.id === s.robot ? 'on' : ''}"></span><span class="t">${rb.name}<small>${rb.loc}</small></span></button>`).join('')}</div>
+      ${m ? `<div class="card primary" data-act="go:mission"><h3>Misión en curso → ${m.dest.name}</h3><div class="progress"><i style="width:${progress()}%"></i></div><span style="font-size:13px">${progress()}% · faltan ${remaining().toFixed(1)} m · ${m.companions} acompañado(s)</span></div>` : ''}
+      <div class="card"><h3>Telemetría</h3><div class="kv"><div><small>Posición (x, y)</small><b>${s.pos.x.toFixed(1)}, ${s.pos.y.toFixed(1)} m</b></div><div><small>Orientación</small><b>${s.pos.yaw.toFixed(2)} rad</b></div><div><small>Velocidad</small><b>${['GUIDING', 'RETURNING'].includes(s.op) ? '0.50' : '0.00'} m/s</b></div><div><small>Último dato</small><b>${time(s.updated)}</b></div></div></div>
+      ${btn('filled', 'go:dest', 'Nueva misión de guía', 'nav', !r)}
+      ${r && !m ? `<p class="hint">${r}</p>` : ''}
+      ${btn('outline', m ? 'confirm:RETURN' : 'cmd:RETURN', 'Regresar a punto seguro', 'home', av.has('RETURN'))}
+      ${stopBtn()}`;
+    } },
+    map: { title: 'Mapa', render() {
+      const d = DEST.find(d => d.id === s.mapSel), r = blockedReason();
+      return `${staleBanner()}${mapSvg(s.mapSel)}<p class="hint">Tocá un destino en el mapa o en la lista para ver el detalle.</p>
+      ${d ? `<div class="card"><h3>${d.name}</h3><span>${d.type} · ${d.building} · Piso ${d.floor}</span><span class="hint">Coordenadas: ${d.x.toFixed(1)}, ${d.y.toFixed(1)} m · a ${dist(s.pos, d).toFixed(1)} m del robot</span>${btn('filled', 'guide:' + d.id, 'Guiar hasta aquí', 'nav', !r)}${r ? `<p class="hint">${r}</p>` : ''}</div>` : ''}
+      <div class="card"><h3>Destinos</h3>${DEST.map(d => `<button class="row-sel" data-act="mapsel:${d.id}" style="min-height:40px"><span class="t" style="color:var(--primary)">${d.name} · ${d.building}</span></button>`).join('')}</div>`;
+    } },
+    dest: { title: 'Seleccionar destino', back: true, render() {
+      const norm = t => t.normalize('NFD').replace(/\p{Mn}/gu, '').toLowerCase();
+      const list = DEST.filter(d => (!s.filter || d.type === s.filter) && (!s.query || [d.name, d.building, d.type].some(t => norm(t).includes(norm(s.query)))));
+      const sel = DEST.find(d => d.id === s.sel), r = blockedReason();
+      return `<div class="field">${ic('search')}<input id="q" aria-label="Buscar aula, laboratorio u oficina" placeholder="Buscar aula, laboratorio u oficina" value="${esc(s.query)}"></div>
+      <div class="chips">${[null, 'Aula', 'Laboratorio', 'Auditorio', 'Oficina'].map(t => `<button class="chip ${s.filter === t ? 'on' : ''}" data-act="filter:${t ?? ''}">${t ?? 'Todos'}</button>`).join('')}</div>
+      <div>${list.length ? list.map(d => `<button class="row-sel" data-act="sel:${d.id}" role="radio" aria-checked="${d.id === s.sel}"><span class="radio ${d.id === s.sel ? 'on' : ''}"></span><span class="t">${d.name}<small>${d.type} · ${d.building} · Piso ${d.floor}</small></span><span class="d">${dist(s.pos, d).toFixed(1)} m</span></button>`).join('')
+        : `<div class="empty">${ic('search')}<b>Sin resultados</b><span>No hay destinos que coincidan con “${esc(s.query)}”.</span><button class="btn outline" style="width:auto" data-act="clearq">Limpiar búsqueda</button></div>`}</div>`;
+    }, sheet() {
+      const sel = DEST.find(d => d.id === s.sel), r = blockedReason();
+      return `<div class="bottom-sheet"><b style="font-weight:500;font-size:16px">${sel ? sel.name : 'Elegí un destino'}</b>
+        <div class="stepper"><span style="flex:1">Acompañados</span><button data-act="comp:-1" aria-label="Menos acompañados" ${s.companions <= 1 ? 'disabled' : ''}>−</button><b>${s.companions}</b><button data-act="comp:1" aria-label="Más acompañados" ${s.companions >= 8 ? 'disabled' : ''}>+</button></div>
+        ${r ? `<div class="card tint" style="--c:var(--danger);padding:10px;font-size:13px">${r}</div>` : ''}
+        ${btn('filled', 'start', pending() ? 'Enviando al robot…' : 'Iniciar guía', null, !!sel && !r)}</div>`;
+    } },
+    mission: { title: 'Misión', render() {
+      const m = s.mission, av = available(), last = s.cmds[0];
+      let head;
+      if (m) head = `<div class="card"><div style="display:flex;gap:10px;align-items:center"><span style="color:var(--primary)">${ic('flag')}</span><div style="flex:1"><small style="font-size:12px">${s.op === 'WAITING' ? 'Detenido en ruta hacia' : 'Guiando hacia'}</small><div style="font-size:22px">${m.dest.name}</div></div>${pill(STATE_LABEL[s.op], stateColor(s.op))}</div>
+        <div class="progress"><i style="width:${progress()}%"></i></div>
+        <div class="kv"><div><small>Progreso</small><b>${progress()}%</b></div><div><small>Distancia restante</small><b>${remaining().toFixed(1)} m</b></div><div><small>Acompañados</small><b>${m.companions}</b></div><div><small>Llegada estimada</small><b>${Math.round(remaining() / SPEED)} s</b></div></div></div>`;
+      else if (s.op === 'ARRIVED') head = `<div class="card tint" style="--c:var(--success)"><h3>Misión completada: el grupo llegó a destino.</h3><span>Podés enviar el robot de regreso al punto seguro o iniciar una nueva misión.</span>${btn('filled', 'go:dest', 'Nueva misión', null, !blockedReason())}</div>`;
+      else if (s.op === 'RETURNING') head = `<div class="card"><h3>Regresando a punto seguro</h3><div class="progress"><i style="width:60%;animation:none"></i></div><span>Al llegar a recepción quedará disponible.</span></div>`;
+      else head = `<div class="empty">${ic('flag')}<b>No hay misión en curso</b><span>Elegí un destino para que el robot guíe a los visitantes.</span><button class="btn outline" style="width:auto" data-act="go:dest">Nueva misión</button></div>`;
+      const inc = unacked().slice(0, 2).map(a => `<div class="card tint" style="--c:var(--${sevColor(a.sev)})"><b style="color:var(--${sevColor(a.sev)});font-weight:500">${esc(a.msg)}</b>${HINT[a.type] ? `<span style="font-size:12px">${HINT[a.type]}</span>` : ''}</div>`).join('');
+      const ord = last ? `<div class="card"><h3>Última orden vs. estado real</h3><div style="display:flex;align-items:center;gap:8px"><div style="flex:1"><small style="font-size:11px;color:var(--muted)">Orden solicitada</small><div>${CMD_LABEL[last.type]}</div></div>${cmdPill(last.status)}</div><span style="font-size:12px">${time(last.t)} · ${esc(last.msg)}</span><div><small style="font-size:11px;color:var(--muted)">Estado real del robot</small><div>${STATE_LABEL[s.op]}</div></div></div>` : '';
+      const ctr = m ? `<div class="row2">${av.has('RESUME') ? btn('tonal', 'cmd:RESUME', 'Reanudar', 'play') : btn('tonal', 'cmd:PAUSE', 'Pausar', 'pause', av.has('PAUSE'))}${btn('outline', 'confirm:CANCEL', 'Cancelar', 'close', av.has('CANCEL'))}</div>` : '';
+      const log = m ? s.events.filter(e => e.mid === m.id).slice(-6).reverse().map(e => `<span>${time(e.t)}  ${esc(e.msg)}</span>`).join('') : '';
+      return `${staleBanner()}${head}${inc}${ord}${ctr}${btn('outline', m ? 'confirm:RETURN' : 'cmd:RETURN', 'Regresar a punto seguro', 'home', av.has('RETURN'))}${stopBtn()}${mapSvg()}${log ? `<div class="card"><h3>Bitácora</h3><div class="log">${log}</div></div>` : ''}`;
+    } },
+    alerts: { title: 'Alertas', render() {
+      const list = s.alertTab === 'pending' ? unacked() : s.alerts;
+      return `<div class="chips"><button class="chip ${s.alertTab === 'pending' ? 'on' : ''}" data-act="atab:pending">Pendientes (${unacked().length})</button><button class="chip ${s.alertTab === 'all' ? 'on' : ''}" data-act="atab:all">Todas (${s.alerts.length})</button></div>
+      ${list.length ? list.map(a => `<div class="card ${a.ack ? '' : 'tint'}" style="--c:var(--${sevColor(a.sev)})"><div style="display:flex;gap:8px;align-items:center">${pill(sevText(a.sev), sevColor(a.sev), sevIcon(a.sev))}<span style="font-size:11px">${time(a.t)}</span></div><span style="font-size:15px">${esc(a.msg)}</span>${a.ack ? `<span class="hint" style="display:flex;gap:4px;align-items:center">${ic('done')} Reconocida</span>` : `<button class="btn tonal" style="width:auto" data-act="ack:${a.id}">Reconocer</button>`}</div>`).join('')
+        : `<div class="empty">${ic('bell')}<b>${s.alertTab === 'pending' ? 'Sin alertas pendientes' : 'Sin alertas'}</b><span>Cuando el robot reporte un incidente aparecerá aquí. Probá “Ruta bloqueada” en el panel.</span></div>`}`;
+    } },
+    history: { title: 'Historial', render() {
+      if (!s.history.length) return `<div class="empty">${ic('hist')}<b>Todavía no hay misiones</b><span>Las misiones se guardan en el dispositivo y se pueden consultar sin conexión.</span></div>`;
+      const ok = s.history.filter(h => h.final === 'Completada').length;
+      const col = f => f === 'Completada' ? 'success' : f === 'Cancelada' ? 'danger' : 'warning';
+      return `<div class="kv" style="grid-template-columns:repeat(3,1fr)"><div><small>Misiones</small><b>${s.history.length}</b></div><div><small>Completadas</small><b>${ok}</b></div><div><small>Interrumpidas</small><b>${s.history.length - ok}</b></div></div>
+      ${s.history.map(h => `<div class="card" data-act="open:${h.id}" style="cursor:pointer"><div style="display:flex;align-items:center;gap:8px"><div style="flex:1"><h3>${h.dest.name}</h3><span class="hint">${time(h.start)} · ${s.robot}</span></div>${pill(h.final, col(h.final))}</div>
+        <div class="kv" style="grid-template-columns:repeat(3,1fr)"><div><small>Duración</small><b>${Math.round((h.end - h.start) / 1000)} s</b></div><div><small>Acompañados</small><b>${h.companions}</b></div><div><small>Alertas</small><b>${h.alerts}</b></div></div>
+        ${s.open === h.id ? `<div style="border-top:1px solid var(--rule);padding-top:8px;display:grid;gap:6px"><b style="font-weight:500;font-size:13px">Comandos enviados</b>${h.cmds.map(c => `<div style="display:flex;align-items:center;gap:6px;font-size:12px"><span style="flex:1">${time(c.t)} ${CMD_LABEL[c.type]}</span>${cmdPill(c.status)}</div>`).join('') || '<span class="hint">—</span>'}<b style="font-weight:500;font-size:13px">Eventos</b><div class="log">${h.events.map(e => `<span>${time(e.t)}  ${esc(e.msg)}</span>`).join('')}</div></div>` : ''}</div>`).join('')}`;
+    } },
+    settings: { title: 'Configuración', back: true, render() {
+      const st = s.settings, rest = st.mode === 'REST';
+      const urlErr = rest && !/^https?:\/\/[A-Za-z0-9.\-]+(:\d{1,5})?(\/.*)?$/.test(st.url.trim());
+      return `<div class="card"><h3>Backend</h3>
+        <div class="chips"><button class="chip ${!rest ? 'on' : ''}" data-act="mode:SIM">Simulador embebido</button><button class="chip ${rest ? 'on' : ''}" data-act="mode:REST">Backend REST</button></div>
+        <span class="hint">${rest ? 'La app se conecta al backend FastAPI / gemelo digital por HTTP.' : 'La app usa un simulador interno: funciona sin red ni backend.'}</span>
+        <label style="font-size:12px;color:var(--muted)" for="url">URL base</label>
+        <div class="field ${urlErr ? 'err' : ''}"><input id="url" value="${esc(st.url)}" ${rest ? '' : 'disabled'} inputmode="url"></div>
+        <span class="hint" style="color:${urlErr ? 'var(--danger)' : 'var(--muted)'}">${urlErr ? 'Formato inválido. Ejemplo: http://10.0.2.2:8000/' : 'Emulador: 10.0.2.2 · Teléfono: IP LAN de la PC'}</span>
+        <div class="row2">${btn('outline', 'health', 'Probar conexión', 'wifi', !urlErr)}${btn('filled', 'save', 'Guardar', null, !urlErr)}</div>
+        <button class="btn" style="background:none;color:var(--primary);justify-content:flex-start;min-height:40px" data-act="defaults">Restaurar valores por defecto</button></div>
+        ${st.health ? `<div class="card"><h3>Última respuesta</h3><div style="display:flex;gap:8px;align-items:center">${st.health.ok ? pill('Conectado', 'success', 'wifi') : pill('Desconectado', 'danger', 'nowifi')}<span class="hint">${st.health.ms} ms · ${time(st.health.t)}</span></div><span>GET /health → ${st.health.msg}</span></div>` : ''}
+        <div class="card tint" style="--c:var(--warning)"><h3>Seguridad</h3><span style="font-size:13px">La “Detención operativa” es una orden por software. NO reemplaza la parada de emergencia física del Unitree G1.</span></div>`;
+    } },
+  };
+  function progress() { const m = s.mission; if (!m) return 0; return Math.min(99, Math.max(0, Math.round((1 - remaining() / m.total) * 100))); }
+  function remaining() { return s.mission ? dist(s.pos, s.mission.dest) : 0; }
+
+  // ---------- Render ----------
+  const NAV = [['home', 'Inicio', 'home'], ['map', 'Mapa', 'map'], ['mission', 'Misión', 'flag'], ['alerts', 'Alertas', 'bell'], ['history', 'Historial', 'hist']];
+  const ABOUT = {
+    home: ['Inicio / estado del robot', 'Primer paso del flujo: elegir el robot y ver si puede trabajar.', [[1, 'Barra de estado persistente: robot, estado, batería, conexión y antigüedad del dato.'], [5, '“Nueva misión” se deshabilita con el motivo escrito debajo, en vez de fallar después.'], [4, 'Detención operativa con el mismo color, texto y lugar en todas las pantallas.']]],
+    map: ['Mapa del campus', 'Mapa 30 × 20 m con edificios, destinos, punto seguro y el robot con su orientación (yaw).', [[6, 'Destinos visibles en el mapa: se reconocen, no hay que recordar códigos.'], [7, 'Atajo: “Guiar hasta aquí” abre la selección con el destino ya elegido.'], [2, 'Nombres reales del campus: “Aula 204”, “Edificio A”.']]],
+    dest: ['Selección de destino', 'Configuración de la misión: destino + cantidad de acompañados.', [[5, 'Acompañados acotado a 1–8 con stepper; no hay texto libre que validar.'], [6, 'Cada destino muestra tipo, edificio, piso y distancia al robot.'], [9, 'Búsqueda sin resultados explica por qué y ofrece “Limpiar búsqueda”.']]],
+    mission: ['Misión en curso', 'Progreso, telemetría específica del servicio y control de la misión.', [[1, '“Última orden vs. estado real” separa lo pedido de lo que el robot hace (PENDING / CONFIRMED / REJECTED / NO_RESPONSE).'], [3, 'Pausar ↔ Reanudar, Cancelar y Regresar siempre al alcance.'], [5, 'Cancelar y Regresar piden confirmación explicando la consecuencia.'], [9, 'Cada incidente trae la acción recomendada para recuperarse.']]],
+    alerts: ['Alertas', 'Incidentes del robot y de la app, con reconocimiento.', [[1, 'Badge con la cantidad pendiente en la barra de navegación.'], [8, 'Las alertas informativas no piden reconocimiento; sólo cuenta lo accionable.'], [4, 'Severidad con ícono + texto + color, nunca sólo color.']]],
+    history: ['Historial', 'Persistido en Room: misión, fecha, robot, estado final, duración, alertas y comandos con su respuesta.', [[6, 'Resumen arriba (misiones, completadas, interrumpidas) y detalle plegado.'], [8, 'El detalle de comandos y eventos aparece sólo al tocar la misión.'], [1, 'Disponible sin conexión: es la fuente local.']]],
+    settings: ['Configuración → Backend', 'URL base, timeout, probar conexión, última respuesta y restaurar valores por defecto (DataStore).', [[9, 'Validación de URL en línea con un ejemplo del formato correcto.'], [10, 'Ayuda contextual: qué IP usar en emulador o en teléfono.'], [3, '“Restaurar valores por defecto” como salida de emergencia.']]],
+  };
+  const STEPS = [['robot', 'Seleccionar robot'], ['start', 'Configurar e iniciar misión'], ['telemetry', 'Recibir telemetría'], ['incident', 'Manejar contingencia'], ['end', 'Finalizar o regresar'], ['history', 'Ver historial persistido']];
+
+  function render() {
+    const scr = SCREENS[s.screen];
+    const el = document.getElementById('screen');
+    const keepFocus = document.activeElement?.id;
+    const caret = document.activeElement?.selectionStart;
+    const scrollTop = el.querySelector('.content')?.scrollTop ?? 0;
+    const conn = s.conn ? pill('Conectado', 'success', 'wifi') : pill('Desconectado', 'danger', 'nowifi');
+    const ua = unacked().length;
+    el.innerHTML = `
+      <div class="sysbar"><span>${new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}</span><span>5G ▮▮▮</span></div>
+      <div class="appbar">${scr.back ? `<button class="icon-btn" data-act="back" aria-label="Volver">${ic('back')}</button>` : ''}<h2>${scr.title}</h2>${s.screen !== 'settings' ? `<button class="icon-btn" data-act="go:settings" aria-label="Configuración">${ic('gear')}</button>` : ''}</div>
+      <button class="statusbar" data-act="go:home" aria-label="Estado del robot"><span class="r"><span class="name">${ROBOTS.find(r => r.id === s.robot).name}</span>${conn}</span><span class="r"><span class="sub">Actualizado ${age()}</span>${pill(STATE_LABEL[s.op], stateColor(s.op))}${pill(Math.floor(s.battery) + '%', batColor(s.battery), 'bat')}</span></button>
+      <div class="content">${scr.render()}</div>
+      ${scr.sheet ? scr.sheet() : ''}
+      <nav class="nav">${NAV.map(([id, label, icon]) => `<button class="navi ${s.screen === id ? 'on' : ''}" data-act="go:${id}" aria-current="${s.screen === id}"><span class="ind">${ic(icon)}</span>${label}${id === 'alerts' && ua ? `<span class="badge">${ua}</span>` : ''}${id === 'mission' && s.mission ? '<span class="badge dot"></span>' : ''}</button>`).join('')}</nav>
+      ${s.confirm ? confirmDialog() : ''}
+      ${s.toast ? `<div class="toast" role="status">${esc(s.toast)}</div>` : ''}`;
+    const c = el.querySelector('.content'); if (c) c.scrollTop = scrollTop;
+    if (keepFocus) { const f = document.getElementById(keepFocus); if (f) { f.focus(); try { f.setSelectionRange(caret, caret); } catch (_) {} } }
+    if (s.history.length && s.screen === 'history') s.done.add('history');
+    document.getElementById('steps').innerHTML = STEPS.map(([k, l]) => `<li class="${s.done.has(k) ? 'done' : ''}">${l}</li>`).join('');
+    document.getElementById('jump').innerHTML = Object.keys(SCREENS).map(k => `<button class="${s.screen === k ? 'on' : ''}" data-act="go:${k}">${SCREENS[k].title}</button>`).join('');
+    const [t, d, h] = ABOUT[s.screen];
+    document.getElementById('about').innerHTML = `<h2>${t}</h2><p>${d}</p><h3>Heurísticas de Nielsen aplicadas</h3><ul class="heur">${h.map(([n, x]) => `<li><span class="n">H${n}</span><span>${x}</span></li>`).join('')}</ul>`;
+  }
+  function confirmDialog() {
+    const c = s.confirm === 'CANCEL'
+      ? ['¿Cancelar la misión?', 'El robot dejará de guiar a los visitantes y quedará detenido en su posición actual. Esta acción no se puede deshacer.', 'Cancelar misión', true]
+      : ['¿Regresar a punto seguro?', 'La misión se dará por finalizada y el robot volverá a recepción.', 'Regresar', false];
+    return `<div class="scrim"><div class="dialog" role="alertdialog" aria-modal="true" aria-label="${c[0]}"><span style="color:var(--warning)">${ic('warn')}</span><h3>${c[0]}</h3><span>${c[1]}</span><div class="acts"><button data-act="dismiss">Volver</button><button class="${c[3] ? 'danger' : ''}" data-act="cmd:${s.confirm}">${c[2]}</button></div></div></div>`;
+  }
+
+  // ---------- Eventos ----------
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-act]'); if (!t || t.disabled) return;
+    const [a, v] = t.dataset.act.split(/:(.*)/s);
+    switch (a) {
+      case 'go': s.screen = v; if (v === 'dest') s.sel = s.sel; break;
+      case 'back': s.screen = 'home'; break;
+      case 'robot': s.robot = v; s.done.add('robot'); break;
+      case 'mapsel': s.mapSel = v; break;
+      case 'guide': s.sel = v; s.screen = 'dest'; break;
+      case 'sel': s.sel = v; s.done.add('robot'); break;
+      case 'filter': s.filter = v || null; break;
+      case 'clearq': s.query = ''; s.filter = null; break;
+      case 'comp': s.companions = Math.min(8, Math.max(1, s.companions + Number(v))); break;
+      case 'start': s.done.add('robot'); send('START', { dest: s.sel, companions: s.companions }); return;
+      case 'cmd': s.confirm = null; send(v); return;
+      case 'confirm': s.confirm = v; break;
+      case 'dismiss': s.confirm = null; break;
+      case 'ack': send('ACK', { alert: v }); return;
+      case 'atab': s.alertTab = v; break;
+      case 'open': s.open = s.open === v ? null : v; break;
+      case 'mode': s.settings.mode = v; break;
+      case 'save': toast('Configuración guardada'); break;
+      case 'defaults': s.settings = { mode: 'SIM', url: 'http://10.0.2.2:8000/', timeout: '3', health: null }; toast('Valores por defecto restaurados'); break;
+      case 'health': {
+        const ok = s.conn && s.settings.mode === 'SIM';
+        s.settings.health = { ok, ms: ok ? 38 : 3000, t: now(), msg: ok ? 'ok · simulador-embebido' : (s.conn ? 'Sin respuesta en 3 s (el prototipo no hace llamadas reales)' : 'El robot no responde (desconexión simulada)') };
+        break;
+      }
+      case 'scen': SCEN[v](); toast('Escenario forzado: ' + v); break;
+    }
+    render();
+  });
+  document.addEventListener('input', e => {
+    if (e.target.id === 'q') { s.query = e.target.value; render(); }
+    if (e.target.id === 'url') { s.settings.url = e.target.value; render(); }
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && s.confirm) { s.confirm = null; render(); } });
+  document.getElementById('scen').innerHTML = Object.keys(SCEN).map(k => `<button data-act="scen:${k}">${k}</button>`).join('');
+  render();
+})();
+</script>

@@ -28,4 +28,5 @@ if [ ! -d /workspace/unitree_mujoco/simulate_python ]; then
 fi
 
 cd /workspace/unitree_mujoco/simulate_python
-exec python3 unitree_mujoco.py
+# sim_launcher.py reemplaza a unitree_mujoco.py (mismo config.py y bridge upstream).
+exec python3 /opt/sim/sim_launcher.py
