@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timezone
 from enum import Enum
 from threading import Lock
@@ -5,6 +6,9 @@ from threading import Lock
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+from app.config import build_bodies_from_env
+from app.guide import GuideService, RobotUnavailable, build_router
 
 
 class RobotMode(str, Enum):
@@ -78,6 +82,8 @@ class MockG1Adapter:
         return self.state()
 
 
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
 app = FastAPI(
     title="Unitree G1 Digital Twin API",
     version="0.1.0",
@@ -90,11 +96,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 adapter = MockG1Adapter()
+guide_service = GuideService(bodies=build_bodies_from_env())
+app.include_router(build_router(guide_service))
+if any(body.kind != "mock" for body in guide_service.bodies()):
+    guide_service.start_background_ticks()
 
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "unitree-g1-backend"}
+    try:
+        return guide_service.health().model_dump()
+    except RobotUnavailable as error:
+        raise HTTPException(status_code=503, detail=str(error)) from error
 
 
 @app.get("/api/v1/robot", response_model=RobotState)

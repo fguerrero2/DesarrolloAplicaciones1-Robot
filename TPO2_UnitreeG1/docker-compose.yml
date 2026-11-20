@@ -12,6 +12,9 @@ services:
       - "8000:8000" # backend (comparte red con este servicio, ver abajo)
     environment:
       - DISPLAY=:1
+      # Modelo del G1 que simula el gemelo (ver docker/simulator/Dockerfile). Vacío = el de
+      # unitree_mujoco/simulate_python/config.py (g1_29dof, no camina con la política pública).
+      - SIM_SCENE=/opt/unitree_rl_gym/resources/robots/g1_description/scene.xml
 
   # Backend FastAPI. Comparte el network namespace del simulador para poder
   # hablar DDS por "lo" (loopback) tal como espera unitree_sdk2_python/mujoco.
@@ -19,7 +22,11 @@ services:
     build:
       context: ./backend
     network_mode: "service:simulator"
-    volumes:
-      - ./backend/app:/app/app
+    environment:
+      - G1_ADAPTER=mujoco          # mock = sin DDS (robot simulado en memoria)
+      - G1_ROBOT_ID=g1-01          # robot de la app que es el gemelo digital
+      - DDS_DOMAIN_ID=1            # unitree_mujoco/simulate_python/config.py
+      - DDS_INTERFACE=lo
+      - SIM_CONTROL_URL=http://127.0.0.1:8765  # reset/arnés de docker/simulator/sim_launcher.py
     depends_on:
       - simulator

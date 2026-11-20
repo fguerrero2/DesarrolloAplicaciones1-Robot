@@ -1,0 +1,300 @@
+<title>Wireframes Robot Guía</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@400;600&display=swap">
+<style>
+/* Layout: hoja de boceto. Grilla de teléfonos en gris, notas a mano al costado, diagramas de flujo abajo. */
+:root {
+  --paper: #f6f6f3;
+  --ink: #2b2b2b;
+  --pencil: #8a8a86;
+  --line: #bdbdb7;
+  --fill: #e4e4df;
+  --note: #5a5a55;
+  --hand: "Architects Daughter", "Comic Sans MS", cursive;
+  --text: "Inter", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --paper: #1c1c1b; --ink: #e8e8e4; --pencil: #9c9c96; --line: #55554f; --fill: #2c2c2a; --note: #b8b8b2; color-scheme: dark } }
+:root[data-theme="dark"] { --paper: #1c1c1b; --ink: #e8e8e4; --pencil: #9c9c96; --line: #55554f; --fill: #2c2c2a; --note: #b8b8b2; color-scheme: dark }
+
+body { background: var(--paper); color: var(--ink); font-family: var(--text); line-height: 1.5;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 32px; }
+.wrap { max-width: 1240px; margin: 0 auto; display: grid; gap: 40px; }
+h1, h2 { font-family: var(--hand); font-weight: 400; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.2rem; }
+h2 { font-size: 1.6rem; border-bottom: 2px dashed var(--line); padding-bottom: 6px; }
+.lead { max-width: 70ch; color: var(--note); margin: 8px 0 0; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: .85rem; color: var(--note); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.sw { width: 18px; height: 12px; border: 1.5px solid var(--ink); display: inline-block; }
+.sw.x { background: repeating-linear-gradient(45deg, transparent 0 4px, var(--line) 4px 5px); }
+.sw.d { border-style: dashed; }
+.sw.f { background: var(--ink); }
+
+.screens { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 28px 24px; }
+.screen { display: grid; gap: 10px; min-width: 0; }
+.screen h3 { font-family: var(--hand); font-weight: 400; font-size: 1.15rem; margin: 0; }
+.phone { border: 2.5px solid var(--ink); border-radius: 22px; padding: 10px 10px 8px; aspect-ratio: 9 / 17.5; max-width: 100%;
+  display: flex; flex-direction: column; gap: 6px; font-size: 11px; background: var(--paper); }
+.bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1.5px solid var(--ink); padding-bottom: 4px; font-weight: 600; }
+.status { border: 1.5px dashed var(--ink); padding: 4px 6px; display: flex; justify-content: space-between; gap: 4px; }
+.box { border: 1.5px solid var(--ink); padding: 6px; display: grid; gap: 4px; }
+.box.x { background: repeating-linear-gradient(45deg, transparent 0 6px, var(--line) 6px 7px); min-height: 70px; place-items: center; color: var(--note); }
+.ln { height: 6px; background: var(--line); border-radius: 3px; }
+.ln.s { width: 55%; } .ln.m { width: 75%; }
+.btn { border: 1.5px solid var(--ink); text-align: center; padding: 5px; border-radius: 6px; }
+.btn.p { background: var(--ink); color: var(--paper); }
+.btn.stop { border-width: 3px; font-weight: 700; }
+.btn.off { border-style: dashed; color: var(--pencil); }
+.row { display: flex; gap: 6px; } .row > * { flex: 1; }
+.chips { display: flex; gap: 4px; flex-wrap: wrap; } .chip { border: 1.2px solid var(--ink); border-radius: 10px; padding: 1px 6px; }
+.chip.on { background: var(--fill); }
+.prog { height: 8px; border: 1.2px solid var(--ink); } .prog i { display: block; height: 100%; width: 45%; background: var(--ink); }
+.grow { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+.nav { display: flex; justify-content: space-around; border-top: 1.5px solid var(--ink); padding-top: 4px; font-size: 9px; }
+.nav b { text-decoration: underline; }
+.notes { font-family: var(--hand); color: var(--note); font-size: .95rem; margin: 0; padding-left: 18px; display: grid; gap: 2px; }
+.flow { overflow-x: auto; border: 1.5px dashed var(--line); padding: 16px; background: var(--paper); }
+.flow pre { margin: 0; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 24px; }
+.cols > div { min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+th { font-family: var(--hand); font-weight: 400; font-size: 1rem; }
+.tbl { overflow-x: auto; }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Robot guía universitario · wireframes de baja fidelidad</h1>
+    <p class="lead">Boceto de estructura y jerarquía para la app de operador del Unitree G1 en modo guía. Sin color ni tipografía final: sólo bloques, prioridades y recorridos. La barra punteada superior es el estado del robot y aparece en todas las pantallas.</p>
+  </header>
+
+  <div class="legend">
+    <span><i class="sw f"></i> acción principal</span>
+    <span><i class="sw"></i> acción secundaria / bloque</span>
+    <span><i class="sw d"></i> deshabilitado o estado persistente</span>
+    <span><i class="sw x"></i> mapa / imagen</span>
+  </div>
+
+  <section class="screens" aria-label="Pantallas">
+    <!-- 1 Inicio -->
+    <article class="screen">
+      <h3>1 · Inicio / estado del robot</h3>
+      <div class="phone">
+        <div class="bar"><span>Inicio</span><span>⚙</span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Disponible · 86% · Conectado</span></div>
+        <div class="grow">
+          <div class="box"><b>Robot</b><div class="row"><span>◉ G1 · Recepción</span></div><div class="row"><span>○ G1 · Edificio B</span></div><span>↻ Actualizar lista</span></div>
+          <div class="box"><b>Misión en curso → Aula 204</b><div class="prog"><i></i></div><div class="ln m"></div></div>
+          <div class="box"><b>Telemetría</b><div class="row"><div class="ln"></div><div class="ln"></div></div><div class="row"><div class="ln"></div><div class="ln"></div></div></div>
+          <div class="btn p">Nueva misión de guía</div>
+          <div class="btn">Regresar a punto seguro</div>
+          <div class="btn stop">DETENCIÓN OPERATIVA</div>
+        </div>
+        <div class="nav"><b>Inicio</b><span>Mapa</span><span>Misión</span><span>Alertas</span><span>Historial</span></div>
+      </div>
+      <ul class="notes"><li>Elegir robot es el primer paso del flujo.</li><li>Si no se puede iniciar, se explica por qué debajo del botón.</li></ul>
+    </article>
+
+    <!-- 2 Mapa -->
+    <article class="screen">
+      <h3>2 · Mapa del campus</h3>
+      <div class="phone">
+        <div class="bar"><span>Mapa</span><span>⚙</span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Guiando · 80%</span></div>
+        <div class="grow">
+          <div class="box x">Mapa 30 × 20 m<br>edificios A · B · C<br>● robot → ○ destino</div>
+          <div class="ln s"></div>
+          <div class="box"><b>Laboratorio de Robótica</b><div class="ln m"></div><div class="btn p">Guiar hasta aquí</div></div>
+          <div class="box"><b>Destinos</b><div class="ln"></div><div class="ln"></div><div class="ln m"></div></div>
+        </div>
+        <div class="nav"><span>Inicio</span><b>Mapa</b><span>Misión</span><span>Alertas</span><span>Historial</span></div>
+      </div>
+      <ul class="notes"><li>Tocar un pin abre su ficha.</li><li>Ruta punteada robot → destino.</li></ul>
+    </article>
+
+    <!-- 3 Destino -->
+    <article class="screen">
+      <h3>3 · Selección de destino</h3>
+      <div class="phone">
+        <div class="bar"><span>← Seleccionar destino</span><span>⚙</span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Disponible</span></div>
+        <div class="grow">
+          <div class="box">🔍 Buscar aula, laboratorio u oficina</div>
+          <div class="chips"><span class="chip on">Todos</span><span class="chip">Aula</span><span class="chip">Lab.</span><span class="chip">Auditorio</span></div>
+          <div class="box"><div class="row"><span>◉ Aula 101</span><span style="text-align:right">5.8 m</span></div><div class="row"><span>○ Aula 204</span><span style="text-align:right">15 m</span></div><div class="row"><span>○ Lab. Robótica</span><span style="text-align:right">21 m</span></div></div>
+        </div>
+        <div class="box"><b>Aula 101</b><div class="row"><span>Acompañados</span><span style="text-align:right">[−] 2 [+]</span></div><div class="btn p">Iniciar guía</div></div>
+      </div>
+      <ul class="notes"><li>Resumen fijo abajo: siempre se ve qué se va a enviar.</li><li>Búsqueda tolera tildes.</li></ul>
+    </article>
+
+    <!-- 4 Misión -->
+    <article class="screen">
+      <h3>4 · Misión en curso</h3>
+      <div class="phone">
+        <div class="bar"><span>Misión</span><span>⚙</span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Guiando · 78%</span></div>
+        <div class="grow">
+          <div class="box"><b>Guiando hacia Aula 204</b><div class="prog"><i></i></div><div class="row"><span>45%</span><span>6.2 m</span></div><div class="row"><span>2 acompañados</span><span>~8 s</span></div></div>
+          <div class="box"><b>⚠ Visitante rezagado</b><div class="ln m"></div></div>
+          <div class="box"><b>Orden vs estado real</b><div class="row"><span>Pausar</span><span>[Confirmado]</span></div><span>Estado real: En pausa</span></div>
+          <div class="row"><div class="btn">Pausar</div><div class="btn">Cancelar</div></div>
+          <div class="btn">Regresar a punto seguro</div>
+          <div class="btn stop">DETENCIÓN OPERATIVA</div>
+        </div>
+        <div class="nav"><span>Inicio</span><span>Mapa</span><b>Misión</b><span>Alertas</span><span>Historial</span></div>
+      </div>
+      <ul class="notes"><li>Cancelar y Regresar piden confirmación.</li><li>Debajo: mini mapa, bitácora y "Simular incidente".</li></ul>
+    </article>
+
+    <!-- 5 Alertas -->
+    <article class="screen">
+      <h3>5 · Alertas</h3>
+      <div class="phone">
+        <div class="bar"><span>Alertas</span><span>⚙</span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Esperando</span></div>
+        <div class="grow">
+          <div class="chips"><span class="chip on">Pendientes (2)</span><span class="chip">Todas (5)</span></div>
+          <div class="box"><span>[Crítica] 12:04</span><b>Ruta bloqueada por obstáculo</b><div class="btn">Reconocer</div></div>
+          <div class="box"><span>[Advertencia] 12:03</span><b>Visitante rezagado</b><div class="btn">Reconocer</div></div>
+          <div class="box" style="border-style:dashed;color:var(--pencil)"><span>[Info] 11:50 ✓ Reconocida</span><div class="ln m"></div></div>
+        </div>
+        <div class="nav"><span>Inicio</span><span>Mapa</span><span>Misión</span><b>Alertas ②</b><span>Historial</span></div>
+      </div>
+      <ul class="notes"><li>Severidad con ícono + texto, no sólo color.</li><li>Badge con cantidad pendiente en la barra.</li></ul>
+    </article>
+
+    <!-- 6 Historial -->
+    <article class="screen">
+      <h3>6 · Historial</h3>
+      <div class="phone">
+        <div class="bar"><span>Historial</span><span>⚙</span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Disponible</span></div>
+        <div class="grow">
+          <div class="row"><span><b>8</b> misiones</span><span><b>6</b> completas</span><span><b>2</b> interr.</span></div>
+          <div class="box"><div class="row"><b>Aula 204</b><span style="text-align:right">[Completada]</span></div><div class="row"><span>1 min 20 s</span><span>2 acomp.</span><span>1 alerta</span></div>
+            <div class="ln"></div><div class="ln m"></div><div class="ln s"></div></div>
+          <div class="box"><div class="row"><b>Lab. Robótica</b><span style="text-align:right">[Cancelada]</span></div><div class="ln m"></div></div>
+        </div>
+        <div class="nav"><span>Inicio</span><span>Mapa</span><span>Misión</span><span>Alertas</span><b>Historial</b></div>
+      </div>
+      <ul class="notes"><li>Se expande: comandos con su respuesta + eventos.</li><li>Disponible sin conexión (Room).</li></ul>
+    </article>
+
+    <!-- 7 Configuración -->
+    <article class="screen">
+      <h3>7 · Configuración → Backend</h3>
+      <div class="phone">
+        <div class="bar"><span>← Configuración</span><span></span></div>
+        <div class="status"><span>G1 · Recepción</span><span>Desconectado</span></div>
+        <div class="grow">
+          <div class="row"><div class="btn">Simulador</div><div class="btn p">Backend REST</div></div>
+          <div class="box">URL base: http://10.0.2.2:8000/</div>
+          <div class="chips"><span class="chip">Emulador</span><span class="chip">Red local</span><span class="chip">localhost</span></div>
+          <div class="box">Timeout (s): 3</div>
+          <div class="row"><div class="btn">Probar conexión</div><div class="btn off">Guardar</div></div>
+          <div class="box"><b>Última respuesta</b><span>[Conectado] 42 ms · ok</span></div>
+          <div class="box"><b>Simular escenarios</b><div class="chips"><span class="chip">Batería baja</span><span class="chip">Desconexión</span><span class="chip">Rechazo</span></div></div>
+        </div>
+      </div>
+      <ul class="notes"><li>Validación de URL en línea.</li><li>"Restaurar valores por defecto" al pie.</li></ul>
+    </article>
+  </section>
+
+  <section>
+    <h2>Flujo de pantallas</h2>
+    <p class="lead">Recorrido del MVP: seleccionar robot → configurar misión → iniciar → ver progreso → recibir telemetría → manejar contingencia → finalizar o regresar → persistir.</p>
+    <div class="flow">
+<pre class="mermaid">
+flowchart LR
+  CFG[7 Configuración<br/>URL · timeout · probar] -.->|guardar| HOME
+  HOME[1 Inicio<br/>elegir robot] -->|Nueva misión| DEST[3 Selección de destino]
+  MAP[2 Mapa] -->|Guiar hasta aquí| DEST
+  DEST -->|Iniciar guía · CONFIRMED| MIS[4 Misión en curso]
+  DEST -->|REJECTED / NO_RESPONSE| DEST
+  MIS -->|Pausar / Reanudar| MIS
+  MIS -->|incidente| ALR[5 Alertas]
+  ALR -->|Reconocer| MIS
+  MIS -->|Cancelar ✓confirmar| HIS[6 Historial]
+  MIS -->|Llegó a destino| HIS
+  MIS -->|Regresar a punto seguro| HOME
+</pre>
+    </div>
+  </section>
+
+  <section class="cols">
+    <div>
+      <h2>Flujo de datos (offline-first)</h2>
+      <p class="lead">La UI nunca lee la red. Lee Room; la sincronización escribe en Room.</p>
+      <div class="flow">
+<pre class="mermaid">
+flowchart TB
+  UI[Compose Screen] -- eventos --> VM[ViewModel]
+  VM -- StateFlow --> UI
+  VM --> UC[UseCases + CommandRules]
+  UC --> REPO[RobotRepository]
+  REPO -- observe* --> ROOM[(Room<br/>telemetry · alerts · missions<br/>mission_events · commands)]
+  POLL([sondeo 1 s]) --> REMOTE
+  REPO -- comandos --> REMOTE{RemoteDataSource}
+  REMOTE --> SIM[Simulador embebido]
+  REMOTE --> REST[Retrofit → FastAPI]
+  REMOTE -- DTO → Entity --> ROOM
+  DS[(DataStore<br/>URL · timeout · modo)] --> REPO
+</pre>
+      </div>
+    </div>
+    <div>
+      <h2>Ciclo de un comando</h2>
+      <p class="lead">Lo pedido y lo ejecutado se muestran por separado.</p>
+      <div class="flow">
+<pre class="mermaid">
+sequenceDiagram
+  participant O as Operador
+  participant VM as ViewModel
+  participant R as Repository
+  participant DB as Room
+  participant G1 as Robot / backend
+  O->>VM: Pausar
+  VM->>R: pauseMission()
+  R->>DB: comando PENDING
+  R->>G1: POST /missions/{id}/pause
+  alt responde OK
+    G1-->>R: CONFIRMED
+  else HTTP 4xx
+    G1-->>R: REJECTED
+  else timeout
+    R-->>R: NO_RESPONSE
+  end
+  R->>DB: actualiza estado + evento
+  R->>G1: GET telemetry (estado real)
+  DB-->>VM: Flow emite
+  VM-->>O: "Pausar · Confirmado" / "Estado real: En pausa"
+</pre>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Decisiones de usabilidad en el boceto</h2>
+    <div class="tbl">
+      <table>
+        <thead><tr><th>Heurística de Nielsen</th><th>Dónde aparece en el wireframe</th></tr></thead>
+        <tbody>
+          <tr><td>1 · Visibilidad del estado</td><td>Barra de estado del robot en todas las pantallas; "Orden vs estado real"; aviso de datos desactualizados.</td></tr>
+          <tr><td>2 · Lenguaje del usuario</td><td>"Aula", "acompañados", "punto seguro"; nada de "endpoint" o "payload".</td></tr>
+          <tr><td>3 · Control y libertad</td><td>Pausar/Reanudar, Cancelar, Regresar; volver atrás desde destino y configuración.</td></tr>
+          <tr><td>4 · Consistencia</td><td>Detención operativa siempre igual y en el mismo lugar; misma navegación inferior.</td></tr>
+          <tr><td>5 · Prevención de errores</td><td>Botones incompatibles deshabilitados; confirmación al cancelar; acompañados acotados a 1–8.</td></tr>
+          <tr><td>6 · Reconocer antes que recordar</td><td>Lista de destinos con edificio, piso y distancia; resumen fijo antes de iniciar.</td></tr>
+          <tr><td>7 · Flexibilidad</td><td>Iniciar desde Inicio o desde el mapa; filtros y búsqueda.</td></tr>
+          <tr><td>8 · Diseño minimalista</td><td>Una acción principal por pantalla; detalle de historial plegado.</td></tr>
+          <tr><td>9 · Recuperarse de errores</td><td>Cada incidente trae qué hacer; REJECTED y NO_RESPONSE explican el motivo.</td></tr>
+          <tr><td>10 · Ayuda</td><td>Textos de ayuda en URL, motivo de bloqueo, aclaración "no reemplaza la parada física".</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>

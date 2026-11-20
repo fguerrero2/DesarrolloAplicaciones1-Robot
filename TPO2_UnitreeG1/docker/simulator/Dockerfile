@@ -33,11 +33,24 @@ ENV CYCLONEDDS_HOME=/opt/cyclonedds \
 RUN git clone --depth 1 https://github.com/unitreerobotics/unitree_sdk2_python.git /opt/unitree_sdk2_python \
     && pip install -e /opt/unitree_sdk2_python
 
+# Modelo G1 de 12 GDL de unitree_rl_gym (BSD-3-Clause): es con el que se entrenó y valida
+# la política de locomoción pública (motion.pt). Con g1_29dof esa política no sigue los
+# comandos de velocidad. Fijado a un commit para que el build sea reproducible.
+ARG UNITREE_RL_GYM_SHA=276801e46c5d433564f24658bac64f254b7d2d4b
+RUN git init -q /opt/unitree_rl_gym && cd /opt/unitree_rl_gym \
+    && git remote add origin https://github.com/unitreerobotics/unitree_rl_gym.git \
+    && git config core.sparseCheckout true \
+    && printf 'resources/robots/g1_description/\nLICENSE\n' > .git/info/sparse-checkout \
+    && git fetch -q --depth 1 --filter=blob:none origin "$UNITREE_RL_GYM_SHA" \
+    && git checkout -q FETCH_HEAD && rm -rf .git
+
 # unitree_mujoco itself is bind-mounted at runtime (see docker-compose.yml),
 # so local edits to the simulator/config are picked up without rebuilding the image.
 WORKDIR /workspace/unitree_mujoco/simulate_python
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+# Lanzador propio: PD por paso de física, arnés de arranque y endpoint de control (ver archivo).
+COPY sim_launcher.py /opt/sim/sim_launcher.py
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
 EXPOSE 6080
