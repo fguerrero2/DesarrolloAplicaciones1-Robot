@@ -16,3 +16,6 @@ local.properties
 
 # Archivos temporales de Office
 ~$*
+
+# Documento del TPO (no versionar)
+docs/TPO_Robot_Guia_Universitario.docx
