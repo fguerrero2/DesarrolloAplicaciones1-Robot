@@ -48,6 +48,18 @@ flowchart TD
 
 Link para TPO2_UnitreeG1
 
+Primero bocetamos las 7 pantallas en wireframes de baja fidelidad, para validar el vocabulario, la jerarquía de la información y qué acciones aparecen en cada estado del robot. Después armamos un prototipo de alta fidelidad navegable que simula el robot y permite forzar los escenarios de falla.
+Link al archivo en Figma con el wireframe de la idea inicial: 
+https://www.figma.com/design/XL3EylIQDrTokhjvvMEqtp/DA1-TPO2-Robot?node-id=8-2&t=BpP7dSTk4UsgpuJp-1
+
+Link al archivo en Figma con el prototipo de pantallas del flujo normal:
+https://www.figma.com/design/XL3EylIQDrTokhjvvMEqtp/DA1-TPO2-Robot?node-id=2-3&t=BpP7dSTk4UsgpuJp-1
+
+Link al archivo en Figma con el prototipo de pantallas del flujo de fallas:
+https://www.figma.com/design/XL3EylIQDrTokhjvvMEqtp/DA1-TPO2-Robot?node-id=14-2&t=BpP7dSTk4UsgpuJp-1
+
+
+
 
 ### Link a Trello para el seguimiento de las tareas requeridas
 
